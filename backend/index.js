@@ -18,8 +18,11 @@ let poruke = [
   ]
   
   const express = require('express')
+  const cors = require('cors')
+
   const app = express()
   app.use(express.json())
+  app.use(cors())
     
   app.get('/', (req, res) =>{
     res.send('<h1>Pozdrav od Express servera!</h1>')
@@ -65,6 +68,14 @@ let poruke = [
     poruke = poruke.concat(poruka)
     
     res.json(poruka)
+  })
+
+  app.put('/api/poruke/:id', (req, res) => {
+    const id = Number(req.params.id)
+    const ModPoruka = req.body
+
+    poruke.map( p => p.id !== id ? p : ModPoruka)
+    res.json(ModPoruka)
   })
 
   const generirajId = () => {

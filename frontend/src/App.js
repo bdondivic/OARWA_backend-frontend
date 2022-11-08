@@ -1,10 +1,19 @@
-import React, {useState} from 'react'
+import React, {useEffect, useState} from 'react'
+import axios from 'axios'
 import Poruka from './components/Poruka'
 
-const App = (props) => {
-  const [ poruke, postaviPoruke] = useState(props.poruke)
+const App = () => {
+  const [ poruke, postaviPoruke] = useState([])
   const [ unosPoruke, postaviUnos] = useState('unesi poruku...')
   const [ ispisSve, postaviIspis] = useState(true)
+
+  useEffect( () => {
+    console.log("Dohvaćanje podataka")
+    axios.get('http://localhost:3001/api/poruke')
+      .then( res => postaviPoruke(res.data))
+  }, [] )
+
+  console.log("Renderiralo se " + poruke.length)
 
   const porukeZaIspis = ispisSve
   ? poruke
@@ -12,19 +21,41 @@ const App = (props) => {
 
   const novaPoruka = (e) => {
     e.preventDefault()
-    console.log('Klik', e.target)
+    //console.log('Klik', e.target)
     const noviObjekt = {
       id: poruke.length + 1,
       sadrzaj: unosPoruke,
       datum: new Date().toISOString(),
       vazno: Math.random() > 0.5      
     }
-    postaviPoruke(poruke.concat(noviObjekt))
-    postaviUnos('')
+
+    axios.post('http://localhost:3001/api/poruke', noviObjekt)
+      .then( res => {
+        console.log(res.data)
+        postaviPoruke(poruke.concat(res.data)) //tu mora biti ono sto je vratio server, a ne novi objekt kojeg smo mi napravili
+        postaviUnos('')
+      } )
+
+  }
+
+  const promjenaVaznostiPoruke = (id) => {
+    console.log(`Mijenjamo poruku ${id}`)	
+    const url = `http://localhost:3001/api/poruke/${id}`
+    const poruka = poruke.find( p => p.id === id )
+  
+    const modPoruka = {
+      ...poruka,
+      vazno: !poruka.vazno
+    }
+  
+    axios.put(url, modPoruka)
+      .then(res => {
+        //console.log(res);
+        postaviPoruke(poruke.map( p => p.id !== id ? p : res.data )) //umisto res.data moze biti i ModPoruka
+      })
   }
 
   const promjenaUnosa = (e) => {
-    console.log(e.target.value);
     postaviUnos(e.target.value)
   }
   return (
@@ -37,8 +68,8 @@ const App = (props) => {
       </div>
       <ul>
         {porukeZaIspis.map(p =>
-          <Poruka key={p.id} poruka={p} />
-        )}        
+          <Poruka key={p.id} poruka={p} promjenaVaznosti={() => promjenaVaznostiPoruke(p.id)} /> 
+        )}     
       </ul>
       <form onSubmit={novaPoruka}>
         <input value={unosPoruke} onChange={promjenaUnosa} />
